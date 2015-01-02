@@ -11,6 +11,10 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
+from tags import (CardSet, CardType, Class,
+                  Faction, CardRace, Rarity,
+                  Mechanics, tag_to_val,
+                  val_to_tag)
 
 
 def dir_of_this_py_file():
@@ -24,7 +28,7 @@ def find_first_match(regex, l):
     return next(i for i in l if re.search(regex, i))
 
 
-def unzip_disunity():
+def unzip_disunity(to_dir):
     """Unzips the disunity_v zipfile into a directory named disunity
     """
     files = os.listdir(dir_of_this_py_file())
@@ -33,17 +37,17 @@ def unzip_disunity():
         raise IOError("cannot find disunity zipfile @ " + disunity_zip)
     else:
         with zipfile.ZipFile(disunity_zip, "r") as z:
-            z.extractall(os.path.join(dir_of_this_py_file(), "disunity"))
+            z.extractall(to_dir)
 
 
 def disunity(commands, filename):
     """Runs disunity commands on the given filename
     filename should be the absolute path to a unity3d file
     """
-    disunity_jar_loc = os.path.join(
-        dir_of_this_py_file(), "disunity", "disunity.jar")
+    disunity_dir = os.path.join(dir_of_this_py_file(), "disunity")
+    disunity_jar_loc = os.path.join(disunity_dir, "disunity.jar")
     if not os.path.exists(disunity_jar_loc):
-        unzip_disunity()
+        unzip_disunity(disunity_dir)
         if not os.path.exists(disunity_jar_loc):
             raise IOError("cannot find disunity jar @ " + disunity_jar_loc)
     args = ["java", "-jar", disunity_jar_loc, commands, filename]
@@ -82,99 +86,6 @@ def card_xmls(data_dir):
                 for file in os.listdir(xml_files_dir)}
 
 
-class Language(Enum):
-    English = "enUS"
-
-
-class CardSet(Enum):
-    TestTemporary = 1
-    Basic = 2
-    Classic = 3
-    Reward = 4
-    Missions = 5
-    Demo = 6
-    System = 7
-    Debug = 8
-    Blank = 9
-    DebugSP = 10
-    Promotion = 11
-    CurseOfNaxxramas = 12
-    GoblinsVsGnomes = 13
-    PH1 = 14
-    PH2 = 15
-    Credits = 16
-
-
-class CardType(Enum):
-    Game = 1
-    Player = 2
-    Hero = 3
-    Minion = 4
-    Ability = 5
-    Enchantment = 6
-    Weapon = 7
-    Item = 8
-    Token = 9
-    HeroPower = 10
-
-
-class Hero(Enum):
-    Invalid = 0
-    AI = 1
-    Druid = 2
-    Hunter = 3
-    Mage = 4
-    Paladin = 5
-    Priest = 6
-    Rogue = 7
-    Shaman = 8
-    Warlock = 9
-    Warrior = 10
-    Dream = 11
-
-
-class CardRarity(Enum):
-    Invalid = 0
-    Common = 1
-    Free = 2
-    Rare = 3
-    Epic = 4
-    Legendary = 5
-
-
-class CardFaction(Enum):
-    Horde = 1
-    Alliance = 2
-    Neutral = 3
-
-
-class CardRace(Enum):
-    Bloodelf = 1
-    Draenei = 2
-    Dwarf = 3
-    Gnome = 4
-    Goblin = 5
-    Human = 6
-    Nightelf = 7
-    Orc = 8
-    Tauren = 9
-    Troll = 10
-    Undead = 11
-    Worgen = 12
-    Goblin2 = 13
-    Murloc = 14
-    Demon = 15
-    Scourge = 16
-    Mechanical = 17
-    Elemental = 18
-    Ogre = 19
-    Pet = 20
-    Totem = 21
-    Nerubian = 22
-    Pirate = 23
-    Dragon = 24
-
-
 class EnumNameEncoder(json.JSONEncoder):
     """A JSON Encoder that uses the name attribute for Enums
     """
@@ -194,34 +105,47 @@ class EnumValueEncoder(json.JSONEncoder):
         else:
             return obj.__dict__
 
+
 class Entity:
     """
     Represents a single in game Entity
     """
     def __init__(self, el, lang):
         """
-        - el is a single ElementTree.Element object with an Entity Tag
+        - el is a single ElementTree.Element object with an Entity tag
         from one of the language specific Hearthstone card xml files
         - lang is the language string, currently only used for the image
         urlls
         """
         self.id = el.attrib["CardID"]
-        self.name = get_text(el, 185)
-        self.set = to_cls_or_none(CardSet, get_attrib(el, 183))
-        self.type = to_cls_or_none(CardType, get_attrib(el, 202))
-        self.faction = to_cls_or_none(CardFaction, get_attrib(el, 201))
-        self.rarity = to_cls_or_none(CardRarity, get_attrib(el, 203))
-        self.hero = to_cls_or_none(Hero, get_attrib(el, 199))
-        self.race = to_cls_or_none(CardRace, get_attrib(el, 200))
-        self.cost = to_int_or_none(get_attrib(el, 48))
-        self.attack = to_int_or_none(get_attrib(el, 47))
-        self.health = to_int_or_none(get_attrib(el, 45))
-        self.elite = to_int_or_none(get_attrib(el, 114)) == 1
-        self.artist = get_text(el, 342)
-        self.abilities = []
-        self.text = get_text(el, 184)
-        self.flavor = get_text(el, 351)
-        self.collectible = to_int_or_none(get_attrib(el, 321)) == 1
+        self.name = _get_text(el, "CARDNAME")
+        self.set = _to_enum_or_none(CardSet, _get_attrib(el, "CARD_SET"))
+        self.type = _to_enum_or_none(CardType, _get_attrib(el, "CARDTYPE"))
+        self.faction = _to_enum_or_none(Faction, _get_attrib(el, "FACTION"))
+        self.rarity = _to_enum_or_none(Rarity, _get_attrib(el, "RARITY"))
+        self.hero = _to_enum_or_none(Class, _get_attrib(el, "CLASS"))
+        self.race = _to_enum_or_none(CardRace, _get_attrib(el, "CARDRACE"))
+        self.cost = _to_int_or_none(_get_attrib(el, "COST"))
+        self.attack = _to_int_or_none(_get_attrib(el, "ATK"))
+        self.health = _to_int_or_none(_get_attrib(el, "HEALTH"))
+        self.durability = _to_int_or_none(_get_attrib(el, "DURABILITY"))
+        self.elite = _to_int_or_none(_get_attrib(el, "ELITE")) == 1
+        self.artist = _get_text(el, "ARTISTNAME")
+        self.mechanics = [m for m in Mechanics
+                          if _get_attrib(el, m.name) is not None]
+        self.text_in_hand = _get_text(el, "CARDTEXT_INHAND")
+        self.text_in_play = _get_text(el, "CARDTEXT_INPLAY")
+        self.flavor = _get_text(el, "FLAVORTEXT")
+        self.collectible = _to_int_or_none(_get_attrib(el, "COLLECTIBLE")) == 1
+        self.how_to_get = _get_text(el, "HOW_TO_EARN")
+        self.how_to_get_golden = _get_text(el, "HOW_TO_EARN_GOLDEN")
+        # for debug purposes
+        self.unknown_tags = []
+        for c in el.iter():
+            val = _to_int_or_none(c.attrib.get('enumID', None))
+            if val is not None and not val in val_to_tag()['GAMETAG']:
+                self.unknown_tags.append(val)
+        # card images
         base_uri = "http://wow.zamimg.com/images/hearthstone/cards"
         self.image_original = "{0}/{1}/original/{2}.png".format(
             base_uri, lang.lower(), self.id)
@@ -229,8 +153,8 @@ class Entity:
             base_uri, lang.lower(), self.id)
         # if this card is a minion or weapon and the cost is None, set
         # cost to 0
-        is_minion = lambda e: e.type == CardType.Minion
-        is_weapon = lambda e: e.type == CardType.Weapon
+        is_minion = lambda e: e.type == CardType.MINION
+        is_weapon = lambda e: e.type == CardType.WEAPON
         if self.cost is None and (is_minion(self) or is_weapon(self)):
             self.cost = 0
 
@@ -239,30 +163,31 @@ class Entity:
                           ensure_ascii=False)
 
 
-def get_attrib(el, id):
+def _get_attrib(el, name):
     """Returns the value of the value attribute of the element with
     enumID attribute equal to id or None if the element isn't found
     """
-    n = el.find("./Tag[@enumID='{0}']".format(id))
+    n = el.find("./Tag[@enumID='{0}']".format(tag_to_val()["GAMETAG"][name]))
     return n.attrib["value"] if not n is None else None
 
 
-def get_text(el, id):
+def _get_text(el, name):
     """Returns the text of the element with enumID attribute equal to id
     or None if the element isn't found
     """
-    n = el.find("./Tag[@enumID='{0}']".format(id))
+    n = el.find("./Tag[@enumID='{0}']".format(tag_to_val()["GAMETAG"][name]))
     return n.text if n is not None else None
 
 
-def to_int_or_none(val):
+def _to_int_or_none(val):
     """attempts to convert val to int or None
     """
     return int(val) if val is not None else None
 
 
-def to_cls_or_none(cls, val):
-    return cls(int(val)) if val is not None and int(val) is not None else None
+def _to_enum_or_none(enumeration, val):
+    ival = _to_int_or_none(val)
+    return enumeration(ival) if ival is not None else None
 
 
 def hearthstone_data_dir():
@@ -273,19 +198,19 @@ def hearthstone_data_dir():
     win_prog_files = os.environ.get(
         "ProgramFiles(x86)", os.path.join("C:", os.sep, "Program Files (x86)"))
     default_dirs = {
-        "win32": os.path.join(
-            win_prog_files, "Hearthstone", "Data", "Win"),
-        "darwin": os.path.join(
-            os.sep, "Applications", "Hearthstone", "Data", "OSX")}
+        "win32": os.path.join(win_prog_files, "Hearthstone", "Data", "Win"),
+        "darwin": os.path.join(os.sep, "Applications", "Hearthstone", "Data",
+                               "OSX")
+    }
     return default_dirs[sys.platform]
 
 
-def write_json_to_dir(output_dir, data_dir, Encoder=EnumNameEncoder):
+def write_json_card_defs(output_dir, data_dir, Encoder=EnumNameEncoder):
     """
     """
     to_json = lambda root, lang: json.dumps(
-        [Entity(e, lang) for e in root], sort_keys=True, indent=4,
-        cls=Encoder, ensure_ascii=False)
+        [Entity(e, lang) for e in root.iter('Entity')],
+        sort_keys=True, indent=4, cls=Encoder, ensure_ascii=False)
     for (lang, xml) in card_xmls(data_dir).items():
         filename = os.path.join(output_dir, "{0}.json".format(lang))
         with open(filename, 'w+', encoding='utf-8') as f:
@@ -315,8 +240,8 @@ def main():
     args = parser.parse_args()
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
-    write_json_to_dir(args.output_dir, args.data_dir,
-                      EnumValueEncoder if args.raw else EnumNameEncoder)
+    write_json_card_defs(args.output_dir, args.data_dir,
+                         EnumValueEncoder if args.raw else EnumNameEncoder)
 
 if __name__ == "__main__":
     main()
