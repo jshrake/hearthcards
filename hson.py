@@ -217,6 +217,7 @@ class Entity:
         self.cost = to_int_or_none(get_attrib(el, 48))
         self.attack = to_int_or_none(get_attrib(el, 47))
         self.health = to_int_or_none(get_attrib(el, 45))
+        self.elite = to_int_or_none(get_attrib(el, 114)) == 1
         self.artist = get_text(el, 342)
         self.abilities = []
         self.text = get_text(el, 184)
