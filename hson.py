@@ -71,8 +71,8 @@ def hearthstone_data_dir():
     return default_dirs[sys.platform]
 
 
-def lang_to_card_def_xml():
-    """Returns a dict of language to card xml files
+def card_xmls():
+    """Returns a dict of language to card xml element tree objects
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         # copy the cards xml unity3d file to a temp directory
@@ -94,33 +94,6 @@ def lang_to_card_def_xml():
         return {os.path.splitext(file)[0]:
                 ET.parse(os.path.join(xml_files_dir, file))
                 for file in os.listdir(xml_files_dir)}
-
-
-class EnumNameEncoder(json.JSONEncoder):
-    """A JSON Encoder that uses the name attribute for Enums
-    """
-    def default(self, obj):
-        if isinstance(obj, Enum):
-            return obj.name
-        else:
-            return obj.__dict__
-
-
-class EnumValueEncoder(json.JSONEncoder):
-    """A JSON Encoder that uses the value attribute for Enums
-    """
-    def default(self, obj):
-        if isinstance(obj, Enum):
-            return obj.value
-        else:
-            return obj.__dict__
-
-
-def entity_list(xml_root, lang):
-    """Returns a list of Entity objects for each entity
-    element in xml_root for a given language
-    """
-    return [Entity(e, lang) for e in xml_root]
 
 
 class Language(Enum):
@@ -216,19 +189,45 @@ class CardRace(Enum):
     Dragon = 24
 
 
+class EnumNameEncoder(json.JSONEncoder):
+    """A JSON Encoder that uses the name attribute for Enums
+    """
+    def default(self, obj):
+        if isinstance(obj, Enum):
+            return obj.name
+        else:
+            return obj.__dict__
+
+
+class EnumValueEncoder(json.JSONEncoder):
+    """A JSON Encoder that uses the value attribute for Enums
+    """
+    def default(self, obj):
+        if isinstance(obj, Enum):
+            return obj.value
+        else:
+            return obj.__dict__
+
+
 class Entity:
     """
     Represents a single in game Entity
     """
     def __init__(self, el, lang):
+        """
+        - el is a single ElementTree.Element object with an Entity Tag
+        from one of the language specific Hearthstone card xml files
+        - lang is the language string, currently only used for the image
+        urlls
+        """
         self.id = el.attrib["CardID"]
         self.name = get_text(el, 185)
-        self.set = to_card_set_or_none(get_attrib(el, 183))
-        self.type = to_card_type_or_none(get_attrib(el, 202))
-        self.faction = to_card_faction_or_none(get_attrib(el, 201))
-        self.rarity = to_card_rarity_or_none(get_attrib(el, 203))
-        self.hero = to_hero_or_none(get_attrib(el, 199))
-        self.race = to_card_race_or_none(get_attrib(el, 200))
+        self.set = to_cls_or_none(CardSet, get_attrib(el, 183))
+        self.type = to_cls_or_none(CardType, get_attrib(el, 202))
+        self.faction = to_cls_or_none(CardFaction, get_attrib(el, 201))
+        self.rarity = to_cls_or_none(CardRarity, get_attrib(el, 203))
+        self.hero = to_cls_or_none(Hero, get_attrib(el, 199))
+        self.race = to_cls_or_none(CardRace, get_attrib(el, 200))
         self.cost = to_int_or_none(get_attrib(el, 48))
         self.attack = to_int_or_none(get_attrib(el, 47))
         self.health = to_int_or_none(get_attrib(el, 45))
@@ -247,22 +246,26 @@ class Entity:
         return json.dumps(self, sort_keys=True, indent=4, cls=EnumNameEncoder,
                           ensure_ascii=False)
 
-# xml helper functions
-
 
 def get_attrib(el, id):
+    """Returns the value of the value attribute of the element with
+    enumID attribute equal to id or None if the element isn't found
+    """
     n = el.find("./Tag[@enumID='{0}']".format(id))
     return n.attrib["value"] if not n is None else None
 
 
 def get_text(el, id):
+    """Returns the text of the element with enumID attribute equal to id
+    or None if the element isn't found
+    """
     n = el.find("./Tag[@enumID='{0}']".format(id))
     return n.text if n is not None else None
 
-# conversion functions from string (or None) to a given type (or None)
-
 
 def to_int_or_none(val):
+    """attempts to convert val to int or None
+    """
     return int(val) if val is not None else None
 
 
@@ -270,37 +273,13 @@ def to_cls_or_none(cls, val):
     return cls(int(val)) if val is not None and int(val) is not None else None
 
 
-def to_card_set_or_none(val):
-    return to_cls_or_none(CardSet, val)
-
-
-def to_card_type_or_none(val):
-    return to_cls_or_none(CardType, val)
-
-
-def to_card_faction_or_none(val):
-    return to_cls_or_none(CardFaction, val)
-
-
-def to_card_rarity_or_none(val):
-    return to_cls_or_none(CardRarity, val)
-
-
-def to_hero_or_none(val):
-    return to_cls_or_none(Hero, val)
-
-
-def to_card_race_or_none(val):
-    return to_cls_or_none(CardRace, val)
-
-
 def write_json_to_dir(dir, Encoder=EnumNameEncoder):
     """
     """
     to_json = lambda root, lang: json.dumps(
-        entity_list(root, lang), sort_keys=True, indent=4,
+        [Entity(e, lang) for e in root], sort_keys=True, indent=4,
         cls=Encoder, ensure_ascii=False)
-    for (lang, xml) in lang_to_card_def_xml().items():
+    for (lang, xml) in card_xmls().items():
         filename = os.path.join(dir, "{0}.json".format(lang))
         with open(filename, 'w+', encoding='utf-8') as f:
             f.write(to_json(xml.getroot(), lang))
