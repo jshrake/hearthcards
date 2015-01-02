@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 from enum import Enum
 import json
 import os
@@ -56,28 +57,13 @@ def disunity_extract(filename):
     disunity("extract", filename)
 
 
-def hearthstone_data_dir():
-    """Returns the absolute directory containing the
-    hearthstone unity3d files in a platform independent
-    manner
-    """
-    win_prog_files = os.environ.get(
-        "ProgramFiles(x86)", os.path.join("C:", os.sep, "Program Files (x86)"))
-    default_dirs = {
-        "win32": os.path.join(
-            win_prog_files, "Hearthstone", "Data", "Win"),
-        "darwin": os.path.join(
-            os.sep, "Applications", "Hearthstone", "Data", "OSX")}
-    return default_dirs[sys.platform]
-
-
-def card_xmls():
+def card_xmls(data_dir):
     """Returns a dict of language to card xml element tree objects
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         # copy the cards xml unity3d file to a temp directory
         cardxml_filename = "cardxml0.unity3d"
-        src = os.path.join(hearthstone_data_dir(), cardxml_filename)
+        src = os.path.join(data_dir, cardxml_filename)
         if not os.path.exists(src):
             raise IOError("Cannot find file " + src)
         dst = os.path.join(tmp_dir, cardxml_filename)
@@ -273,19 +259,56 @@ def to_cls_or_none(cls, val):
     return cls(int(val)) if val is not None and int(val) is not None else None
 
 
-def write_json_to_dir(dir, Encoder=EnumNameEncoder):
+def hearthstone_data_dir():
+    """Returns the absolute directory containing the
+    hearthstone unity3d files in a platform independent
+    manner
+    """
+    win_prog_files = os.environ.get(
+        "ProgramFiles(x86)", os.path.join("C:", os.sep, "Program Files (x86)"))
+    default_dirs = {
+        "win32": os.path.join(
+            win_prog_files, "Hearthstone", "Data", "Win"),
+        "darwin": os.path.join(
+            os.sep, "Applications", "Hearthstone", "Data", "OSX")}
+    return default_dirs[sys.platform]
+
+
+def write_json_to_dir(output_dir, data_dir, Encoder=EnumNameEncoder):
     """
     """
     to_json = lambda root, lang: json.dumps(
         [Entity(e, lang) for e in root], sort_keys=True, indent=4,
         cls=Encoder, ensure_ascii=False)
-    for (lang, xml) in card_xmls().items():
-        filename = os.path.join(dir, "{0}.json".format(lang))
+    for (lang, xml) in card_xmls(data_dir).items():
+        filename = os.path.join(output_dir, "{0}.json".format(lang))
         with open(filename, 'w+', encoding='utf-8') as f:
             f.write(to_json(xml.getroot(), lang))
 
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--raw', default=False, required=False,
+                        action='store_true',
+                        help="""Output the raw integer values specified in the
+                        Hearthstone data file rather than the human readble
+                        string representation""")
+    parser.add_argument('-d', '--data-dir', default=hearthstone_data_dir(),
+                        required=False,
+                        help="""Hearthstone data directory.
+                        Only required for a non-default Hearthstone install.
+                        Default windows location:
+                        C:\\Program Files (x86)\\Hearthstone\\Data\\Win
+                        Default osx location:
+                        /Applications/Hearthstone/Data/OSX""")
+    parser.add_argument('-o', '--output-dir',
+                        default=os.path.join(dir_of_this_py_file(), "output"),
+                        required=False, help="Output directory")
+    args = parser.parse_args()
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    write_json_to_dir(args.output_dir, args.data_dir,
+                      EnumValueEncoder if args.raw else EnumNameEncoder)
+
 if __name__ == "__main__":
-    outputdir = os.path.join(dir_of_this_py_file(), "output")
-    if not os.path.exists(outputdir):
-        os.makedirs(outputdir)
-    write_json_to_dir(outputdir)
+    main()
