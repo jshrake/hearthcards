@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import IntEnum
 from collections import namedtuple
 
 _TAGFILE = 'tags.json'
@@ -22,15 +22,17 @@ def val_to_tag():
     return val_to_tag.m
 
 
-GameTag = Enum('GameTag', tag_to_val().get('GAMETAG').items())
-CardSet = Enum('CardSet', tag_to_val().get('CARD_SET').items())
-CardType = Enum('CardType', tag_to_val().get('CARDTYPE').items())
-Class = Enum('Class', tag_to_val().get('CLASS').items())
-Faction = Enum('Faction', tag_to_val().get('FACTION').items())
-CardRace = Enum('CardRace', tag_to_val().get('CARDRACE').items())
-Rarity = Enum('Rarity', tag_to_val().get('RARITY').items())
-Step = Enum('Step', tag_to_val().get('STEP').items())
-Zone = Enum('Zone', tag_to_val().get('ZONE').items())
+GameTag = IntEnum('GameTag', tag_to_val().get('GAMETAG').items())
+CardSet = IntEnum('CardSet', tag_to_val().get('CARD_SET').items())
+CardType = IntEnum('CardType', tag_to_val().get('CARDTYPE').items())
+Class = IntEnum('Class', tag_to_val().get('CLASS').items())
+Faction = IntEnum('Faction', tag_to_val().get('FACTION').items())
+CardRace = IntEnum('CardRace', tag_to_val().get('CARDRACE').items())
+Rarity = IntEnum('Rarity', tag_to_val().get('RARITY').items())
+Step = IntEnum('Step', tag_to_val().get('STEP').items())
+Zone = IntEnum('Zone', tag_to_val().get('ZONE').items())
+SpellZone = IntEnum('SpellZone', tag_to_val().get('SPELL_ZONE').items())
+Requirement = IntEnum('Requirement', tag_to_val().get('REQUIREMENT').items())
 Mechanics = [GameTag[m] for m in tag_to_val().get('MECHANICS')]
 
 
