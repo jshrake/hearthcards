@@ -89,20 +89,20 @@ class Language(Enum):
 class CardSet(Enum):
     TestTemporary = 1
     Basic = 2
-    Expert = 3
+    Classic = 3
     Reward = 4
     Missions = 5
     Demo = 6
-    Nil = 7
-    Cheat = 8
+    System = 7
+    Debug = 8
     Blank = 9
     DebugSP = 10
-    Promo = 11
-    FP1 = 12
-    PE1 = 13
-    FP2 = 14
-    PE2 = 15
-    Credit = 16
+    Promotion = 11
+    CurseOfNaxxramas = 12
+    GoblinsVsGnomes = 13
+    PH1 = 14
+    PH2 = 15
+    Credits = 16
 
 
 class CardType(Enum):
@@ -119,8 +119,8 @@ class CardType(Enum):
 
 
 class Hero(Enum):
-    Invalid1 = 0
-    Invalid2 = 1
+    Invalid = 0
+    AI = 1
     Druid = 2
     Hunter = 3
     Mage = 4
@@ -130,7 +130,7 @@ class Hero(Enum):
     Shaman = 8
     Warlock = 9
     Warrior = 10
-    Neutral = 11
+    Dream = 11
 
 
 class CardRarity(Enum):
@@ -194,7 +194,6 @@ class EnumValueEncoder(json.JSONEncoder):
         else:
             return obj.__dict__
 
-
 class Entity:
     """
     Represents a single in game Entity
@@ -228,6 +227,12 @@ class Entity:
             base_uri, lang.lower(), self.id)
         self.image_golden = "{0}/{1}/animated/{2}_premium.gif".format(
             base_uri, lang.lower(), self.id)
+        # if this card is a minion or weapon and the cost is None, set
+        # cost to 0
+        is_minion = lambda e: e.type == CardType.Minion
+        is_weapon = lambda e: e.type == CardType.Weapon
+        if self.cost is None and (is_minion(self) or is_weapon(self)):
+            self.cost = 0
 
     def __str__(self):
         return json.dumps(self, sort_keys=True, indent=4, cls=EnumNameEncoder,
