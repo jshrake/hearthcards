@@ -303,7 +303,9 @@ def main():
                         /Applications/Hearthstone/Data/OSX""")
     parser.add_argument('-o', '--output-dir',
                         default=os.path.join(dir_of_this_py_file(), "output"),
-                        required=False, help="Output directory")
+                        required=False,
+                        help="""Output directory. By default, outputs data into
+                        the directory_of_this_py_file/output/""")
     args = parser.parse_args()
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)

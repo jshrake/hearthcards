@@ -17,7 +17,8 @@ hson is a Python 3 tool for extracting Hearthstone game data
                             Default osx location:
                                 /Applications/Hearthstone/Data/OSX
       -o OUTPUT_DIR, --output-dir OUTPUT_DIR
-                            Output directory for json files
+                            Output directory for json files. By default,
+                            outputs data into the directory_of_this_py_file/output/
 
 # dependencies
 Some version of Java for [disunity](https://github.com/ata4/disunity).
