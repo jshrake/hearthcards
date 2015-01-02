@@ -27,41 +27,28 @@ class CardDef(object):
         self._entourage_cards = []
         self._power_history_info = {}
         self._mechanics = []
-        self._unknown_tags = []
-        self._unknown_referenced_tags = []
-        self._unknown_play_requirements = []
 
-        def mechanic_or_none(val):
-            try:
-                return Mechanics(val)
-            except:
-                return None
+        def is_mechanic(t):
+            return t in Mechanics
 
         def read_tag(el):
             enum_id = el.attrib.get("enumID", None)
-            tag = _to_enum_or_none(GameTag, enum_id)
-            if tag is None:
-                self._unknown_tags.append(enum_id)
+            tag = GameTag(_to_int_or_none(enum_id))
+            t = el.attrib.get("type", None)
+            if t == 'String':
+                self._tags[tag] = el.text
             else:
-                t = el.attrib.get("type", None)
-                if t == 'String':
-                    self._tags[tag] = el.text
-                else:
-                    value = _to_int_or_none(el.attrib.get("value", 0))
-                    self._tags[tag] = value
-                    # check if the tag is a mechanic
-                    mech = mechanic_or_none(tag)
-                    if mech is not None:
-                        self._mechanics.append(mech)
+                value = _to_int_or_none(el.attrib.get("value", None))
+                self._tags[tag] = value
+                # check if the tag is a mechanic
+                if is_mechanic(tag):
+                    self._mechanics.append(tag)
 
         def read_referenced_tag(el):
             enum_id = el.attrib.get("enumID", None)
-            tag = _to_enum_or_none(GameTag, enum_id)
-            if tag is None:
-                self._unknown_referenced_tags.append(enum_id)
-            else:
-                value = _to_int_or_none(el.attrib.get("value", None))
-                self._referenced_tags[tag] = value
+            tag = GameTag(_to_int_or_none(enum_id))
+            value = _to_int_or_none(el.attrib.get("value", None))
+            self._referenced_tags[tag] = value
 
         def read_master_power(el):
             self.master_power = el.text
@@ -70,9 +57,7 @@ class CardDef(object):
             def read_play_requirement(el):
                 enum_id = el.attrib.get("reqID", None)
                 req = _to_enum_or_none(Requirement, enum_id)
-                if req is None:
-                    self._unknown_play_requirements.append(req)
-                else:
+                if req is not None:
                     param = _to_int_or_none(el.attrib.get("param", None))
                     self._play_requirements[req] = param or 0
             self._power_definition = el.attrib.get("definition", None)
@@ -247,7 +232,7 @@ class CardDef(object):
         name_if_enum = lambda x: x.name if isinstance(x, Enum) else x
         tmp = {name_if_enum(k): name_if_enum(v)
                for (k, v) in self.repr().items()}
-        tmp["MECHANICS"] = self.mechanics
+        tmp["MECHANICS"] = [mech.name for mech in self.mechanics]
         tmp["ENTOURAGE_CARDS"] = self.entourage_cards
         tmp["PLAY_REQUIREMENTS"] = {name_if_enum(k): name_if_enum(v) for
                                     (k, v) in self.play_requirements.items()}

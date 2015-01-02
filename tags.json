@@ -194,7 +194,12 @@
     "CAN_SUMMON_MAXPLUSONE_MINION" : 390,
     "COLLECTIBLE": 321,
     "ATTACK_VISUAL_TYPE": 251,
-    "CARDTEXT_INPLAY": 252
+    "CARDTEXT_INPLAY": 252,
+    "DEV_STATE": 268,
+    "ONE_TURN_EFFECT": 338,
+    "HEAL_TARGET": 361,
+    "IMMUNE_TO_SPELLPOWER": 349,
+    "INVISIBLE_DEATHRATTLE": 335
     },
 "CARD_SET": {
     "INVALID" : 0,
@@ -388,6 +393,9 @@
             "MORPH", "SILENCE", "COUNTER",
             "ADJACENT_BUFF", "AURA",
             "POISONOUS",
-            "AFFECTED_BY_SPELL_POWER"
+            "AFFECTED_BY_SPELL_POWER",
+            "ONE_TURN_EFFECT",
+            "HEAL_TARGET",
+            "IMMUNE_TO_SPELLPOWER"
             ]
 }
