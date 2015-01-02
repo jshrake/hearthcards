@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from enum import Enum
 import json
@@ -96,8 +96,35 @@ def lang_to_card_def_xml():
                 for file in os.listdir(xml_files_dir)}
 
 
-def lang_to_entity_lists(m):
-    return {k: entity_list(v.getroot(), k) for (k, v) in m.items()}
+class EnumNameEncoder(json.JSONEncoder):
+    """A JSON Encoder that uses the name attribute for Enums
+    """
+    def default(self, obj):
+        if isinstance(obj, Enum):
+            return obj.name
+        else:
+            return obj.__dict__
+
+
+class EnumValueEncoder(json.JSONEncoder):
+    """A JSON Encoder that uses the value attribute for Enums
+    """
+    def default(self, obj):
+        if isinstance(obj, Enum):
+            return obj.value
+        else:
+            return obj.__dict__
+
+
+def entity_list(xml_root, lang):
+    """Returns a list of Entity objects for each entity
+    element in xml_root for a given language
+    """
+    return [Entity(e, lang) for e in xml_root]
+
+
+class Language(Enum):
+    English = "enUS"
 
 
 class CardSet(Enum):
@@ -190,47 +217,37 @@ class CardRace(Enum):
 
 
 class Entity:
-
+    """
+    Represents a single in game Entity
+    """
     def __init__(self, el, lang):
         self.id = el.attrib["CardID"]
         self.name = get_text(el, 185)
-        self.set = to_card_set_safe(get_attrib(el, 183))
-        self.type = to_card_type_safe(get_attrib(el, 202))
-        self.faction = to_card_faction_safe(get_attrib(el, 201))
-        self.rarity = to_card_rarity_safe(get_attrib(el, 203))
-        self.hero = to_hero_safe(get_attrib(el, 199))
-        self.race = to_card_race_safe(get_attrib(el, 200))
-        self.cost = to_int_safe(get_attrib(el, 48))
-        self.attack = to_int_safe(get_attrib(el, 47))
-        self.health = to_int_safe(get_attrib(el, 45))
+        self.set = to_card_set_or_none(get_attrib(el, 183))
+        self.type = to_card_type_or_none(get_attrib(el, 202))
+        self.faction = to_card_faction_or_none(get_attrib(el, 201))
+        self.rarity = to_card_rarity_or_none(get_attrib(el, 203))
+        self.hero = to_hero_or_none(get_attrib(el, 199))
+        self.race = to_card_race_or_none(get_attrib(el, 200))
+        self.cost = to_int_or_none(get_attrib(el, 48))
+        self.attack = to_int_or_none(get_attrib(el, 47))
+        self.health = to_int_or_none(get_attrib(el, 45))
         self.artist = get_text(el, 342)
         self.abilities = []
         self.text = get_text(el, 184)
         self.flavor = get_text(el, 351)
-        self.collectible = to_int_safe(get_attrib(el, 321)) == 1
-        self.image_original = "http://wow.zamimg.com/images/hearthstone/cards/{0}/original/{1}.png".format(lang.lower(), self.id)
-        self.image_golden = "http://wow.zamimg.com/images/hearthstone/cards/{0}/animated/{1}_premium.gif".format(lang.lower(), self.id)
-
-    def to_json(self):
-        class EnumValEncoder(json.JSONEncoder):
-            def default(self, obj):
-                if isinstance(obj, Enum):
-                    return obj.value
-                else:
-                    return obj.__dict__
-        return json.dumps(self, sort_keys=True, indent=4, cls=EnumValEncoder)
-
-    def to_human_json(self):
-        class EnumNameEncoder(json.JSONEncoder):
-            def default(self, obj):
-                if isinstance(obj, Enum):
-                    return obj.name
-                else:
-                    return obj.__dict__
-        return json.dumps(self, sort_keys=True, indent=4, cls=EnumNameEncoder)
+        self.collectible = to_int_or_none(get_attrib(el, 321)) == 1
+        base_uri = "http://wow.zamimg.com/images/hearthstone/cards"
+        self.image_original = "{0}/{1}/original/{2}.png".format(
+            base_uri, lang.lower(), self.id)
+        self.image_golden = "{0}/{1}/animated/{2}_premium.gif".format(
+            base_uri, lang.lower(), self.id)
 
     def __str__(self):
-        return self.to_human_json()
+        return json.dumps(self, sort_keys=True, indent=4, cls=EnumNameEncoder,
+                          ensure_ascii=False)
+
+# xml helper functions
 
 
 def get_attrib(el, id):
@@ -242,38 +259,54 @@ def get_text(el, id):
     n = el.find("./Tag[@enumID='{0}']".format(id))
     return n.text if n is not None else None
 
+# conversion functions from string (or None) to a given type (or None)
 
-def to_int_safe(val):
+
+def to_int_or_none(val):
     return int(val) if val is not None else None
 
 
-def to_cls_safe(cls, val):
+def to_cls_or_none(cls, val):
     return cls(int(val)) if val is not None and int(val) is not None else None
 
 
-def to_card_set_safe(val):
-    return to_cls_safe(CardSet, val)
+def to_card_set_or_none(val):
+    return to_cls_or_none(CardSet, val)
 
 
-def to_card_type_safe(val):
-    return to_cls_safe(CardType, val)
+def to_card_type_or_none(val):
+    return to_cls_or_none(CardType, val)
 
 
-def to_card_faction_safe(val):
-    return to_cls_safe(CardFaction, val)
+def to_card_faction_or_none(val):
+    return to_cls_or_none(CardFaction, val)
 
 
-def to_card_rarity_safe(val):
-    return to_cls_safe(CardRarity, val)
+def to_card_rarity_or_none(val):
+    return to_cls_or_none(CardRarity, val)
 
 
-def to_hero_safe(val):
-    return to_cls_safe(Hero, val)
+def to_hero_or_none(val):
+    return to_cls_or_none(Hero, val)
 
 
-def to_card_race_safe(val):
-    return to_cls_safe(CardRace, val)
+def to_card_race_or_none(val):
+    return to_cls_or_none(CardRace, val)
 
 
-def entity_list(xml_root, lang="enUS"):
-    return [Entity(e, lang) for e in xml_root]
+def write_json_to_dir(dir, Encoder=EnumNameEncoder):
+    """
+    """
+    to_json = lambda root, lang: json.dumps(
+        entity_list(root, lang), sort_keys=True, indent=4,
+        cls=Encoder, ensure_ascii=False)
+    for (lang, xml) in lang_to_card_def_xml().items():
+        filename = os.path.join(dir, "{0}.json".format(lang))
+        with open(filename, 'w+', encoding='utf-8') as f:
+            f.write(to_json(xml.getroot(), lang))
+
+if __name__ == "__main__":
+    outputdir = os.path.join(dir_of_this_py_file(), "output")
+    if not os.path.exists(outputdir):
+        os.makedirs(outputdir)
+    write_json_to_dir(outputdir)
