@@ -7,6 +7,7 @@ from enum import Enum
 from .tags import (GameTag, CardSet, CardType, Class,
                    Faction, CardRace, Rarity,
                    Requirement, Mechanics, Locales)
+from .util import hearthstone_data_dir
 
 
 class CardDef(object):
@@ -53,15 +54,14 @@ class CardDef(object):
             self.master_power = el.text
 
         def read_power(el):
-            def read_play_requirement(el):
-                enum_id = el.attrib.get("reqID", None)
-                req = _to_enum_or_none(Requirement, enum_id)
-                if req is not None:
-                    param = _to_int_or_none(el.attrib.get("param", None))
-                    self._play_requirements[req] = param or 0
             self._power_definition = el.attrib.get("definition", None)
-            for child in el.iter():
-                read_play_requirement(child)
+
+        def read_play_requirement(el):
+            enum_id = el.attrib.get("reqID", None)
+            req = _to_enum_or_none(Requirement, enum_id)
+            if req is not None:
+                param = _to_int_or_none(el.attrib.get("param", None))
+                self._play_requirements[req] = param or 0
 
         def read_entourage_card(el):
             self._entourage_cards.append(el.attrib["cardID"])
@@ -78,9 +78,10 @@ class CardDef(object):
             'MasterPower': read_master_power,
             'Power': read_power,
             'EntourageCard': read_entourage_card,
+            'PlayRequirement': read_play_requirement,
             'TriggeredPowerHistoryInfo': read_triggered_power_history_info,
         }
-        for el in entity_el:
+        for el in entity_el.iter():
             action = reader.get(el.tag, lambda x: None)
             action(el)
 
@@ -242,7 +243,7 @@ class CardDef(object):
         return tmp
 
 
-def extract_card_defs(data_dir):
+def card_db(data_dir=hearthstone_data_dir()):
     """Returns a dict of language to card xml element tree objects
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -262,7 +263,7 @@ def extract_card_defs(data_dir):
             raise IOError(
                 "disunity extract failed, cannot find temporary directory @ "
                 + xml_files_dir)
-        return {Locales[os.path.splitext(file)[0]]:
+        return {os.path.splitext(file)[0]:
                 card_defs_from_xml(os.path.join(xml_files_dir, file))
                 for file in os.listdir(xml_files_dir)}
 
