@@ -4,10 +4,9 @@ import tempfile
 import xml.etree.ElementTree as ET
 import os
 from enum import Enum
-import json
 from .tags import (GameTag, CardSet, CardType, Class,
                    Faction, CardRace, Rarity,
-                   Requirement, Mechanics)
+                   Requirement, Mechanics, Locales)
 
 
 class CardDef(object):
@@ -97,75 +96,75 @@ class CardDef(object):
 
     @property
     def type(self):
-        return CardType(self._tags.get(GameTag.CARDTYPE, 0))
+        return _to_enum_or_none(CardType, self.get_tag(GameTag.CARDTYPE))
 
     @property
     def set(self):
-        return CardSet(self._tags.get(GameTag.CARD_SET, 0))
+        return _to_enum_or_none(CardSet, self.get_tag(GameTag.CARD_SET))
 
     @property
     def faction(self):
-        return Faction(self._tags.get(GameTag.FACTION, 0))
+        return _to_enum_or_none(Faction, self.get_tag(GameTag.FACTION))
 
     @property
     def rarity(self):
-        return Rarity(self._tags.get(GameTag.RARITY, 0))
+        return _to_enum_or_none(Rarity, self.get_tag(GameTag.RARITY))
 
     @property
     def player_class(self):
-        return Class(self._tags.get(GameTag.CLASS, 0))
+        return _to_enum_or_none(Class, self.get_tag(GameTag.CLASS))
 
     @property
     def race(self):
-        return CardRace(self._tags.get(GameTag.CARDRACE, 0))
+        return _to_enum_or_none(CardRace, self.get_tag(GameTag.CARDRACE))
 
     @property
     def cost(self):
-        return self._tags.get(GameTag.COST, None)
+        return self.get_tag(GameTag.COST)
 
     @property
     def attack(self):
-        return self._tags.get(GameTag.ATK, None)
+        return self.get_tag(GameTag.ATK)
 
     @property
     def health(self):
-        return self._tags.get(GameTag.HEALTH, None)
+        return self.get_tag(GameTag.HEALTH)
 
     @property
     def durability(self):
-        return self._tags.get(GameTag.DURABILITY, None)
+        return self.get_tag(GameTag.DURABILITY)
 
     @property
     def is_elite(self):
-        return self._tags.get(GameTag.ELITE, 0) == 1
+        return self.get_tag(GameTag.ELITE) == 1
 
     @property
     def artist_name(self):
-        return self._tags.get(GameTag.ARTISTNAME, None)
+        return self.get_tag(GameTag.ARTISTNAME)
 
     @property
     def cardtext_inhand(self):
-        return self._tags.get(GameTag.CARDTEXT_INHAND, None)
+        return self.get_tag(GameTag.CARDTEXT_INHAND)
 
     @property
     def cardtext_inplay(self):
-        return self._tags.get(GameTag.CARDTEXT_INPLAY, None)
+        return self.get_tag(GameTag.CARDTEXT_INPLAY)
 
     @property
     def flavor_text(self):
-        return self._tags.get(GameTag.FLAVORTEXT, None)
+        return self.get_tag(GameTag.FLAVORTEXT)
 
     @property
     def is_collectible(self):
-        return self._tags.get(GameTag.COLLECTIBLE, 0) == 1
+        return self.get_tag(GameTag.COLLECTIBLE) == 1
 
     @property
     def how_to_earn(self):
-        return self._tags.get(GameTag.HOW_TO_EARN, None)
+        return self.get_tag(GameTag.HOW_TO_EARN)
 
     @property
     def how_to_earn_golden(self):
-        return self._tags.get(GameTag.HOW_TO_EARN_GOLDEN, None)
+        return self.get_tag(GameTag.HOW_TO_EARN_GOLDEN)
 
     @property
     def entourage_cards(self):
@@ -197,54 +196,53 @@ class CardDef(object):
         return game_tag in self._tags
 
     def get_tag(self, game_tag):
-        return self._tags[game_tag]
+        return self._tags.get(game_tag, None)
 
     def has_requirement(self, req):
         return req in self._play_requirements
 
     def get_requirement(self, req):
-        return self._play_requirements[req]
+        return self._play_requirements.get(req, None)
 
-    def repr(self):
+    def repr(self, lang):
         return {
-            GameTag.CARD_ID: self.id,
-            GameTag.CARDNAME: self.name,
-            GameTag.CARDRACE: self.race,
-            GameTag.CARDTYPE: self.type,
-            GameTag.CLASS: self.player_class,
-            GameTag.RARITY: self.rarity,
-            GameTag.ELITE: self.is_elite,
-            GameTag.COLLECTIBLE: self.is_collectible,
-            GameTag.CARD_SET: self.set,
-            GameTag.FACTION: self.faction,
-            GameTag.COST: self.cost,
-            GameTag.ATK: self.attack,
-            GameTag.HEALTH: self.health,
-            GameTag.DURABILITY: self.durability,
-            GameTag.HOW_TO_EARN: self.how_to_earn,
-            GameTag.HOW_TO_EARN_GOLDEN: self.how_to_earn_golden,
-            GameTag.FLAVORTEXT: self.flavor_text,
-            GameTag.CARDTEXT_INHAND: self.cardtext_inhand,
-            GameTag.CARDTEXT_INPLAY: self.cardtext_inplay,
+            "id": self.id,
+            "name": self.name,
+            "type": self.type,
+            "class": self.player_class,
+            "rarity": self.rarity,
+            "race": self.race,
+            "elite": self.is_elite,
+            "collectible": self.is_collectible,
+            "set": self.set,
+            "faction": self.faction,
+            "cost": self.cost,
+            "attack": self.attack,
+            "health": self.health,
+            "durability": self.durability,
+            "how_to_earn": self.how_to_earn,
+            "how_to_earn_golden": self.how_to_earn_golden,
+            "flavor_text": self.flavor_text,
+            "card_text_inhand": self.cardtext_inhand,
+            "card_text_inplay": self.cardtext_inplay,
+            "mechanics": self.mechanics,
+            "entourage_cards": self.entourage_cards,
+            "play_requirements": self.play_requirements,
+            "card_image": self.image_uri(lang),
+            "card_golden_image": self.image_golden_uri(lang)
         }
 
-    def human_repr(self):
-        name_if_enum = lambda x: x.name if isinstance(x, Enum) else x
-        tmp = {name_if_enum(k): name_if_enum(v)
-               for (k, v) in self.repr().items()}
-        tmp["MECHANICS"] = [mech.name for mech in self.mechanics]
-        tmp["ENTOURAGE_CARDS"] = self.entourage_cards
-        tmp["PLAY_REQUIREMENTS"] = {name_if_enum(k): name_if_enum(v) for
+    def human_repr(self, lang):
+        snake_case = lambda s: "".join(x.title() for x in s.split('_'))
+        enum_name = lambda x: snake_case(x.name) if isinstance(x, Enum) else x
+        tmp = {k: enum_name(v) for (k, v) in self.repr(lang).items()}
+        tmp["mechanics"] = [snake_case(mech.name) for mech in self.mechanics]
+        tmp["play_requirements"] = {enum_name(k): enum_name(v) for
                                     (k, v) in self.play_requirements.items()}
         return tmp
 
-    def __str__(self):
-        return json.dumps(self.human_repr(),
-                          sort_keys=True, indent=4,
-                          ensure_ascii=False)
 
-
-def card_defs(data_dir):
+def extract_card_defs(data_dir):
     """Returns a dict of language to card xml element tree objects
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -264,9 +262,14 @@ def card_defs(data_dir):
             raise IOError(
                 "disunity extract failed, cannot find temporary directory @ "
                 + xml_files_dir)
-        return {os.path.splitext(file)[0]:
-                ET.parse(os.path.join(xml_files_dir, file))
+        return {Locales[os.path.splitext(file)[0]]:
+                card_defs_from_xml(os.path.join(xml_files_dir, file))
                 for file in os.listdir(xml_files_dir)}
+
+
+def card_defs_from_xml(xmlfile):
+    root = ET.parse(xmlfile).getroot()
+    return [CardDef(el) for el in root.iter('Entity')]
 
 
 def _to_int_or_none(val):

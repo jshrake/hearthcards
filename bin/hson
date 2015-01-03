@@ -7,18 +7,6 @@ from hearthcards import carddef
 from hearthcards.util import hearthstone_data_dir
 
 
-def write_json_card_defs(output_dir, data_dir, repr):
-    """
-    """
-    to_json = lambda root: json.dumps(
-        [repr(carddef.CardDef(e)) for e in root.iter('Entity')],
-        sort_keys=True, indent=4, ensure_ascii=False)
-    for (lang, xml) in carddef.card_defs(data_dir).items():
-        filename = os.path.join(output_dir, "{0}.json".format(lang))
-        with open(filename, 'w+', encoding='utf-8') as f:
-            f.write(to_json(xml.getroot()))
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--raw', default=False, required=False,
@@ -42,11 +30,16 @@ def main():
     args = parser.parse_args()
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
-    machine_repr = lambda cd: cd.repr()
-    human_repr = lambda cd: cd.human_repr()
-    write_json_card_defs(args.output_dir, args.data_dir,
-                         machine_repr if args.raw
-                         else human_repr)
+    machine_repr = lambda card, lang: card.repr(lang)
+    human_repr = lambda card, lang: card.human_repr(lang)
+    repr = machine_repr if args.raw else human_repr
+    card_defs = carddef.extract_card_defs(args.data_dir)
+    for (lang, cards) in card_defs.items():
+        data = [repr(card, lang.code) for card in cards]
+        filename = os.path.join(args.output_dir, "{0}.json".format(lang.code))
+        with open(filename, 'w+', encoding='utf-8') as f:
+            f.write(json.dumps(data, sort_keys=True,
+                               indent=4, ensure_ascii=False))
 
 if __name__ == "__main__":
     main()
