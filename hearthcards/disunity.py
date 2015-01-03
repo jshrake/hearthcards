@@ -2,21 +2,21 @@ import re
 import os
 import zipfile
 import subprocess
-from util import dir_of_this_py_file
+import tempfile
+from pkg_resources import resource_filename
 
 
 def disunity(commands, filename):
     """Runs disunity commands on the given filename
     filename should be the absolute path to a unity3d file
     """
-    disunity_dir = os.path.join(dir_of_this_py_file(), "disunity")
-    disunity_jar_loc = os.path.join(disunity_dir, "disunity.jar")
-    if not os.path.exists(disunity_jar_loc):
-        _unzip_disunity(disunity_dir)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        disunity_jar_loc = os.path.join(tmp_dir, "disunity.jar")
+        _unzip_disunity(tmp_dir)
         if not os.path.exists(disunity_jar_loc):
             raise IOError("cannot find disunity jar @ " + disunity_jar_loc)
-    args = ["java", "-jar", disunity_jar_loc, commands, filename]
-    subprocess.call(args)
+        args = ["java", "-jar", disunity_jar_loc, commands, filename]
+        subprocess.call(args)
 
 
 def extract(filename):
@@ -36,8 +36,7 @@ def _find_first_match(regex, l):
 def _unzip_disunity(to_dir):
     """Unzips the disunity_v zipfile into a directory named disunity
     """
-    files = os.listdir(dir_of_this_py_file())
-    disunity_zip = _find_first_match("disunity.+\.zip", files)
+    disunity_zip = resource_filename(__name__, 'data/disunity_v0.3.4.zip')
     if disunity_zip is None:
         raise IOError("cannot find disunity zipfile @ " + disunity_zip)
     else:

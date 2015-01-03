@@ -3,17 +3,17 @@
 import argparse
 import json
 import os
-import card_def
-from util import dir_of_this_py_file, hearthstone_data_dir
+from hearthcards import carddef
+from hearthcards.util import hearthstone_data_dir
 
 
 def write_json_card_defs(output_dir, data_dir, repr):
     """
     """
     to_json = lambda root: json.dumps(
-        [repr(card_def.CardDef(e)) for e in root.iter('Entity')],
+        [repr(carddef.CardDef(e)) for e in root.iter('Entity')],
         sort_keys=True, indent=4, ensure_ascii=False)
-    for (lang, xml) in card_def.card_defs(data_dir).items():
+    for (lang, xml) in carddef.card_defs(data_dir).items():
         filename = os.path.join(output_dir, "{0}.json".format(lang))
         with open(filename, 'w+', encoding='utf-8') as f:
             f.write(to_json(xml.getroot()))
@@ -35,7 +35,7 @@ def main():
                         Default osx location:
                         /Applications/Hearthstone/Data/OSX""")
     parser.add_argument('-o', '--output-dir',
-                        default=os.path.join(dir_of_this_py_file(), "output"),
+                        default=os.path.join(os.getcwd(), "hson-output"),
                         required=False,
                         help="""Output directory. By default, outputs data into
                         the directory_of_this_py_file/output/""")

@@ -1,13 +1,13 @@
-import disunity
+from . import disunity
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 import os
 from enum import Enum
 import json
-from tags import (GameTag, CardSet, CardType, Class,
-                  Faction, CardRace, Rarity,
-                  Requirement, Mechanics)
+from .tags import (GameTag, CardSet, CardType, Class,
+                   Faction, CardRace, Rarity,
+                   Requirement, Mechanics)
 
 
 class CardDef(object):

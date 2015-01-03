@@ -1,13 +1,12 @@
 from enum import IntEnum
 from collections import namedtuple
-
-_TAGFILE = 'tags.json'
+from pkg_resources import resource_filename
 
 
 def tag_to_val():
     import json
     if "m" not in tag_to_val.__dict__:
-        with open(_TAGFILE, 'r') as f:
+        with open(resource_filename(__name__, 'data/tags.json'), 'r') as f:
             tag_to_val.m = json.load(f)
     return tag_to_val.m
 

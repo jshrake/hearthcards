@@ -15,7 +15,3 @@ def hearthstone_data_dir():
                                "OSX")
     }
     return default_dirs[sys.platform]
-
-
-def dir_of_this_py_file():
-    return os.path.dirname(os.path.abspath(__file__))
