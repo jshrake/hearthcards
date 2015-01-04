@@ -8,6 +8,7 @@ from .tags import (GameTag, CardSet, CardType, Class,
                    Faction, CardRace, Rarity,
                    Requirement, Mechanics)
 from .util import hearthstone_data_dir
+from .locale import Locale
 
 
 class CardDef(object):
@@ -183,15 +184,15 @@ class CardDef(object):
     def mechanics(self):
         return self._mechanics
 
-    def image_uri(self, lang):
+    def image_uri(self, locale):
         base_uri = "http://wow.zamimg.com/images/hearthstone/cards"
         return "{0}/{1}/original/{2}.png".format(
-            base_uri, lang.lower(), self.id)
+            base_uri, locale.name.lower(), self.id)
 
-    def image_golden_uri(self, lang):
+    def image_golden_uri(self, locale):
         base_uri = "http://wow.zamimg.com/images/hearthstone/cards"
         return "{0}/{1}/animated/{2}_premium.gif".format(
-            base_uri, lang.lower(), self.id)
+            base_uri, locale.name.lower(), self.id)
 
     def has_tag(self, game_tag):
         return game_tag in self._tags
@@ -205,7 +206,7 @@ class CardDef(object):
     def get_requirement(self, req):
         return self._play_requirements.get(req, None)
 
-    def repr(self, lang):
+    def repr(self, locale):
         return {
             "id": self.id,
             "name": self.name,
@@ -229,14 +230,14 @@ class CardDef(object):
             "mechanics": self.mechanics,
             "entourage_cards": self.entourage_cards,
             "play_requirements": self.play_requirements,
-            "card_image": self.image_uri(lang),
-            "card_golden_image": self.image_golden_uri(lang)
+            "card_image": self.image_uri(locale),
+            "card_golden_image": self.image_golden_uri(locale)
         }
 
-    def human_repr(self, lang):
+    def human_repr(self, locale):
         snake_case = lambda s: "".join(x.title() for x in s.split('_'))
         enum_name = lambda x: snake_case(x.name) if isinstance(x, Enum) else x
-        tmp = {k: enum_name(v) for (k, v) in self.repr(lang).items()}
+        tmp = {k: enum_name(v) for (k, v) in self.repr(locale).items()}
         tmp["mechanics"] = [snake_case(mech.name) for mech in self.mechanics]
         tmp["play_requirements"] = {enum_name(k): enum_name(v) for
                                     (k, v) in self.play_requirements.items()}
@@ -263,7 +264,7 @@ def card_db(data_dir=hearthstone_data_dir()):
             raise IOError(
                 "disunity extract failed, cannot find temporary directory @ "
                 + xml_files_dir)
-        return {os.path.splitext(file)[0]:
+        return {Locale(os.path.splitext(file)[0]):
                 card_defs_from_xml(os.path.join(xml_files_dir, file))
                 for file in os.listdir(xml_files_dir)}
 
