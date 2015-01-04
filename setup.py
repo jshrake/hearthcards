@@ -7,6 +7,7 @@ setup(
     packages=find_packages(),
     scripts=['bin/hson'],
     package_data={'hearthcards': ['hearthcards/data/*']},
+    include_package_data=True,
     version="0.0.1",
     description="Hearthstone card API",
     author="Justin Shrake",

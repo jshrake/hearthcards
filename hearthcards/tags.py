@@ -1,24 +1,20 @@
+import json
 from enum import IntEnum
 from collections import namedtuple
-from pkg_resources import resource_filename
+from pkg_resources import resource_string
 
 
 def tag_to_val():
-    import json
-    if "m" not in tag_to_val.__dict__:
-        with open(resource_filename(__name__, 'data/tags.json'), 'r') as f:
-            tag_to_val.m = json.load(f)
-    return tag_to_val.m
+    return json.loads(
+        resource_string(__name__, 'data/tags.json').decode('utf-8'))
 
 
 def val_to_tag():
     """Inverse of tag_to_val sans the mechanics list
     """
-    if "m" not in val_to_tag.__dict__:
-        val_to_tag.m = {outer_k: {v: k for (k, v) in outer_v.items()}
-                        for (outer_k, outer_v) in tag_to_val().items()
-                        if isinstance(outer_v, dict)}
-    return val_to_tag.m
+    return {outer_k: {v: k for (k, v) in outer_v.items()}
+            for (outer_k, outer_v) in tag_to_val().items()
+            if isinstance(outer_v, dict)}
 
 
 GameTag = IntEnum('GameTag', tag_to_val().get('GAMETAG').items())

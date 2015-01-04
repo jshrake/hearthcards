@@ -6,7 +6,7 @@ import os
 from enum import Enum
 from .tags import (GameTag, CardSet, CardType, Class,
                    Faction, CardRace, Rarity,
-                   Requirement, Mechanics, Locales)
+                   Requirement, Mechanics)
 from .util import hearthstone_data_dir
 
 
