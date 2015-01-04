@@ -3,8 +3,7 @@
 import argparse
 import json
 import os
-from hearthcards import carddef
-from hearthcards.util import hearthstone_data_dir
+from hearthcards import hearthstone_data_dir, card_db
 
 
 def main():
@@ -34,7 +33,7 @@ def main():
     machine_repr = lambda card, lang: card.repr(lang)
     human_repr = lambda card, lang: card.human_repr(lang)
     repr = machine_repr if args.raw else human_repr
-    card_defs = carddef.card_db(args.data_dir)
+    card_defs = card_db(args.data_dir)
     for (lang, cards) in card_defs.items():
         data = [repr(card, lang) for card in cards]
         filename = os.path.join(args.output_dir, "{0}.json".format(lang))

@@ -7,7 +7,8 @@ import os
 
 def tag_to_val():
     return json.loads(
-        resource_string(__name__, os.path.join('data','tags.json')).decode('utf-8'))
+        resource_string(
+            __name__, os.path.join('data','tags.json')).decode('utf-8'))
 
 
 def val_to_tag():
