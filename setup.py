@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
 from setuptools import setup, find_packages
+import os
 
 setup(
-    name="hearthcards",
-    packages=find_packages(),
-    scripts=['bin/hson'],
-    package_data={'hearthcards': ['hearthcards/data/*']},
+    name='hearthcards',
+    packages=['hearthcards'],
+    entry_points={
+        'console_scripts': ['hson=hearthcards.hson:main']
+    },
+    package_data={'hearthcards': [os.path.join('data', '*')]},
     include_package_data=True,
     version="0.0.1",
     description="Hearthstone card API",

@@ -2,11 +2,12 @@ import json
 from enum import IntEnum
 from collections import namedtuple
 from pkg_resources import resource_string
+import os
 
 
 def tag_to_val():
     return json.loads(
-        resource_string(__name__, 'data/tags.json').decode('utf-8'))
+        resource_string(__name__, os.path.join('data','tags.json')).decode('utf-8'))
 
 
 def val_to_tag():

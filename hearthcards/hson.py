@@ -12,15 +12,16 @@ def main():
     parser.add_argument('-r', '--raw', default=False, required=False,
                         action='store_true',
                         help="""Output the raw integer values specified in the
-                        Hearthstone data file rather than the human readble
-                        string representation""")
+                        Hearthstone data file rather than the human readable
+                        string representations. Useful for application interop.""")
     parser.add_argument('-d', '--data-dir', default=hearthstone_data_dir(),
                         required=False,
-                        help="""Hearthstone data directory.
+                        help="""Hearthstone data directory containing the 
+                        cardxml0.unity3d file.
                         Only required for a non-default Hearthstone install.
-                        Default windows location:
+                        Default install location on Windows:
                         C:\\Program Files (x86)\\Hearthstone\\Data\\Win
-                        Default osx location:
+                        Default install location on OS X:
                         /Applications/Hearthstone/Data/OSX""")
     parser.add_argument('-o', '--output-dir',
                         default=os.path.join(os.getcwd(), "hson-output"),
