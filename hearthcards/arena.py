@@ -10,6 +10,21 @@ arena module for simulating arena drafts and calculating useful statistics
 '''
 
 
+NORMAL_PICK_P = {Rarity.COMMON: .9,
+                 Rarity.RARE: .08,
+                 Rarity.EPIC: .016,
+                 Rarity.LEGENDARY: 0.004}
+
+SPECIAL_PICK_P = {Rarity.RARE: .8,
+                  Rarity.EPIC: .16,
+                  Rarity.LEGENDARY: .04}
+
+CLASS_PICK_P = {Rarity.COMMON: .3,
+                Rarity.RARE: .2,
+                Rarity.EPIC: .3,
+                Rarity.LEGENDARY: 0.07}
+
+
 class CardPool(object):
     '''
     CardPool maintains a pool of hearthstone cards and offers
@@ -88,13 +103,6 @@ def arena_draft(hero, card_pool):
     class_cards_by_rarity = partition_by_rarity(class_cards)
     neut_cards_by_rarity = partition_by_rarity(neutral_cards)
 
-    # class card probability by rarity
-    ccp = {Rarity.COMMON: .3,  # 30% chance of class card on common pick
-           Rarity.RARE: .2,  # 20% chance of class card on rare pick
-           Rarity.EPIC: .3,  # 30% chance of class card on epic pick
-           Rarity.LEGENDARY: .07  # 7% chance of class card on legendary pick
-           }
-
     def draw_card(rarity):  # (Rarity) -> CardDef
         '''
         Given the rarity of this set of picks, returns a neutral or class
@@ -103,7 +111,8 @@ def arena_draft(hero, card_pool):
         cr = class_cards_by_rarity[rarity]
         nr = neut_cards_by_rarity[rarity]
         p = random.random()
-        return cr.draw() if p < ccp[rarity] and len(cr) != 0 else nr.draw()
+        return (cr.draw() if p < CLASS_PICK_P[rarity] and
+                len(cr) != 0 else nr.draw())
 
     def reset_pools():  # (void) -> void
         '''
@@ -129,7 +138,11 @@ def arena_draft(hero, card_pool):
                        Rarity.EPIC,      # < 99.6%
                        Rarity.LEGENDARY  # < 100%
                        ],
-                  cumsum([.9, .08, .016, 0.004])))
+                  cumsum([
+                         NORMAL_PICK_P[Rarity.COMMON],
+                         NORMAL_PICK_P[Rarity.RARE],
+                         NORMAL_PICK_P[Rarity.EPIC],
+                         NORMAL_PICK_P[Rarity.LEGENDARY]])))
     for rarity_p in random.random(REG_N):
         rarity = next(r for (r, w) in iter(norm_z) if rarity_p < w)
         draft.append([draw_card(rarity) for _ in range(CARDS_PER_PICK)])
@@ -145,7 +158,10 @@ def arena_draft(hero, card_pool):
                        Rarity.EPIC,      # < 96%
                        Rarity.LEGENDARY  # < 100%
                        ],
-                  cumsum([.8, .16, 0.04])))
+                  cumsum([
+                         SPECIAL_PICK_P[Rarity.RARE],
+                         SPECIAL_PICK_P[Rarity.EPIC],
+                         SPECIAL_PICK_P[Rarity.LEGENDARY]])))
     for rarity_p in random.random(SPEC_N):
         rarity = next(r for (r, w) in iter(spec_z) if rarity_p < w)
         draft.append([draw_card(rarity) for _ in range(CARDS_PER_PICK)])
@@ -210,24 +226,19 @@ def expected_number(hero, card_pool, predicate, N):
     neutral_pool = [c for c in card_pool if c.player_class is None]
     hero_by = partition_by_rarity(hero_pool)
     neut_by = partition_by_rarity(neutral_pool)
-    class_pick_by_r = {Rarity.COMMON: .3,
-                       Rarity.RARE: .2,
-                       Rarity.EPIC: .3,
-                       Rarity.LEGENDARY: 0.07}
     inner_p = lambda m: sum([p * hs_pick_p(len(hero_by[r]),
                             len([c for c in hero_by[r] if predicate(c)]),
-                            class_pick_by_r[r],
+                            CLASS_PICK_P[r],
                             len(neut_by[r]),
                             len([c for c in neut_by[r] if predicate(c)]),
-                            1 - class_pick_by_r[r]) for r, p in m.items()])
-    normal_p = inner_p({Rarity.COMMON: .9,
-                       Rarity.RARE: .08,
-                       Rarity.EPIC: .016,
-                       Rarity.LEGENDARY: 0.004})
-    special_p = inner_p({Rarity.RARE: .8,
-                         Rarity.EPIC: .16,
-                         Rarity.LEGENDARY: .04})
+                            1 - CLASS_PICK_P[r]) for r, p in m.items()])
+    normal_p = inner_p(NORMAL_PICK_P)
+    special_p = inner_p(SPECIAL_PICK_P)
     return (sum([binom(N_REG, p=normal_p).pmf(k=i) * i
                 for i in range(3 * N_REG)]) +
             sum([binom(N_SPEC, p=special_p).pmf(k=i) * i
                 for i in range(3 * N_SPEC)]))
+
+
+def probability_of(hero, card_pool, predicate, N):
+    return expected_number(hero, card_pool, predicate, N) / (3 * N)
