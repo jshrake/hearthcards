@@ -3,7 +3,7 @@
 import argparse
 import json
 import os
-from hearthcards import hearthstone_data_dir, card_db
+from hearthcards import card_db, UNITY3D_CARDXML
 
 
 def main():
@@ -12,10 +12,11 @@ def main():
                         action='store_true',
                         help="""Output the raw integer values specified in the
                         Hearthstone data file rather than the human readable
-                        string representations. Useful for application interop.""")
-    parser.add_argument('-d', '--data-dir', default=hearthstone_data_dir(),
+                        string representations. Useful for application interop.
+                        """)
+    parser.add_argument('-c', '--cardxml', default=UNITY3D_CARDXML,
                         required=False,
-                        help="""Hearthstone data directory containing the 
+                        help="""Asbolute path to the Hearthstone
                         cardxml0.unity3d file.
                         Only required for a non-default Hearthstone install.
                         Default install location on Windows:
@@ -33,10 +34,10 @@ def main():
     machine_repr = lambda card, lang: card.repr(lang)
     human_repr = lambda card, lang: card.human_repr(lang)
     repr = machine_repr if args.raw else human_repr
-    card_defs = card_db(args.data_dir)
+    card_defs = card_db(args.cardxml)
     for (lang, cards) in card_defs.items():
         data = [repr(card, lang) for card in cards]
-        filename = os.path.join(args.output_dir, "{0}.json".format(lang))
+        filename = os.path.join(args.output_dir, "{0}.json".format(lang.value))
         with open(filename, 'w+', encoding='utf-8') as f:
             f.write(json.dumps(data, sort_keys=True,
                                indent=4, ensure_ascii=False))

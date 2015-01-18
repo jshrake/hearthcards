@@ -1,9 +1,9 @@
-from . import disunity
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 import os
 from enum import Enum
+from . import disunity
 from .tags import (GameTag, CardSet, CardType, Class,
                    Faction, CardRace, Rarity,
                    Requirement, Mechanics)
@@ -12,22 +12,22 @@ from .locale import Locale
 
 
 class CardDef(object):
-    """
-    Represents a single in game Entity
-    """
+    '''
+    Hearthstone card definition
+    '''
     def __init__(self, entity_el):
-        """
+        '''
+        constructs a CardDef from an Entity xml element
         - el is a single ElementTree.Element object with an Entity tag
         from one of the language specific Hearthstone card xml files
-        - lang is the language string, currently only used for the image
-        urlls
-        """
+        '''
         self._tags = {}
         self._referenced_tags = {}
         self._play_requirements = {}
         self._entourage_cards = []
         self._power_history_info = {}
         self._mechanics = []
+        self._power_definition = None
 
         def is_mechanic(t):
             return t in Mechanics
@@ -184,15 +184,35 @@ class CardDef(object):
     def mechanics(self):
         return self._mechanics
 
+    @property
+    def is_weapon(self):
+        return self.type == CardType.WEAPON
+
+    @property
+    def is_ability(self):
+        return self.type == CardType.ABILITY
+
+    @property
+    def is_enchantment(self):
+        return self.type == CardType.ENCHANTMENT
+
+    @property
+    def is_item(self):
+        return self.type == CardType.ITEM
+
+    @property
+    def is_minion(self):
+        return self.type == CardType.MINION
+
     def image_uri(self, locale):
         base_uri = "http://wow.zamimg.com/images/hearthstone/cards"
         return "{0}/{1}/original/{2}.png".format(
-            base_uri, locale.name.lower(), self.id)
+            base_uri, locale.value.lower(), self.id)
 
     def image_golden_uri(self, locale):
         base_uri = "http://wow.zamimg.com/images/hearthstone/cards"
         return "{0}/{1}/animated/{2}_premium.gif".format(
-            base_uri, locale.name.lower(), self.id)
+            base_uri, locale.value.lower(), self.id)
 
     def has_tag(self, game_tag):
         return game_tag in self._tags
@@ -243,18 +263,32 @@ class CardDef(object):
                                     (k, v) in self.play_requirements.items()}
         return tmp
 
+    def __hash__(self):
+        return hash(self.id)
 
-def card_db(data_dir=hearthstone_data_dir()):
-    """Returns a dict of language to card xml element tree objects
-    """
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __le__(self, other):
+        return self.name <= other.name
+
+
+UNITY3D_CARDXML = os.path.join(hearthstone_data_dir(), "cardxml0.unity3d")
+
+
+def card_db(cardxml_unity3d=UNITY3D_CARDXML):
+    # Path -> {Lang: List(CardDef)}
+    '''
+    Extracts the card data from the unity3d cardxml file using disunity and
+    returns a dict of Lang to list of CardDef objects
+    '''
     with tempfile.TemporaryDirectory() as tmp_dir:
         # copy the cards xml unity3d file to a temp directory
-        cardxml_filename = "cardxml0.unity3d"
-        src = os.path.join(data_dir, cardxml_filename)
-        if not os.path.exists(src):
-            raise IOError("Cannot find file " + src)
-        dst = os.path.join(tmp_dir, cardxml_filename)
-        shutil.copyfile(src, dst)
+        filename = os.path.basename(cardxml_unity3d)
+        if not os.path.exists(cardxml_unity3d):
+            raise IOError("Cannot find file " + cardxml_unity3d)
+        dst = os.path.join(tmp_dir, filename)
+        shutil.copyfile(cardxml_unity3d, dst)
         # run disunity extract on the tmp cardxml0.unity3d file
         disunity.extract(dst)
         # build the dict
@@ -270,13 +304,18 @@ def card_db(data_dir=hearthstone_data_dir()):
 
 
 def card_defs_from_xml(xmlfile):
+    # Path -> List(CardDef)
+    '''
+    Constructs a list of CardDef objects from a xml file
+    extracted from the cardxml0.unity3d Hearthstone gamefile
+    '''
     root = ET.parse(xmlfile).getroot()
     return [CardDef(el) for el in root.iter('Entity')]
 
 
 def _to_int_or_none(val):
-    """attempts to convert val to int or None
-    """
+    '''attempts to convert val to int or None
+    '''
     return int(val) if val is not None and val != '' else None
 
 

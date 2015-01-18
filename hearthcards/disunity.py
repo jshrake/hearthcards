@@ -36,7 +36,8 @@ def _find_first_match(regex, l):
 def _unzip_disunity(to_dir):
     """Unzips the disunity_v zipfile into a directory named disunity
     """
-    disunity_zip = resource_filename(__name__, os.path.join('data','disunity_v0.3.4.zip'))
+    disunity_zip = resource_filename(
+        __name__, os.path.join('data', 'disunity_v0.3.4.zip'))
     if disunity_zip is None:
         raise IOError("cannot find disunity zipfile @ " + disunity_zip)
     else:
