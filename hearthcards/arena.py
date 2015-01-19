@@ -170,9 +170,9 @@ def arena_draft(hero, card_pool):
     return draft
 
 
-def hs_pick_p(T1, S1, P1, T2, S2, P2):
+def pick_1_p(T1, S1, P1, T2, S2, P2):
     '''
-    hs_pick_p returns the probability of seeing 1 success in 3 turns under the
+    pick_1_p returns the probability of seeing 1 success in 3 turns under the
     following conditions: Consider two urns, U1 and U2, each containing a mix
     of red and blue balls. Suppose U1 contains S1 red balls, and T1-S1 blue
     balls, and U2 contains S2 red balls and T2-S2 blue balls. At each turn we
@@ -180,6 +180,7 @@ def hs_pick_p(T1, S1, P1, T2, S2, P2):
     randomly pick a ball from the selected urn without replacement. What is the
     probability of selecting 1 red ball in 3 turns?
     '''
+    # (int, int, float, int, int, float) -> float(0.0, 1.0)
 
     def hyper(M, n, N, k):
         constrained_k = max(min(k, min(n, N)), max(0, N - (M - n)))
@@ -199,6 +200,38 @@ def hs_pick_p(T1, S1, P1, T2, S2, P2):
             comb(3, 1) * P1 * P1 * P2 * b +
             comb(3, 2) * P1 * P2 * P2 * c +
             comb(3, 3) * P2 * P2 * P2 * d)
+
+
+def pick_0_p(T1, S1, P1, T2, S2):
+    '''
+    pick_0_p returns the probability of seeing 3 failures in 3 turns
+    '''
+    # (int, int, float, int, int, float) -> float(0.0, 1.0)
+    P2 = 1.0 - P1
+
+    def hyper(M, n, N, k):
+        constrained_k = max(min(k, min(n, N)), max(0, N - (M - n)))
+        return nan_to_num(hypergeom(M=M, n=n, N=N).pmf(k=constrained_k))
+
+    a = hyper(M=T1, n=T1 - S1, N=3, k=3)
+    b = (hyper(M=T1, n=T1 - S1, N=2, k=2) *
+         hyper(M=T2, n=T2 - S2, N=1, k=1))
+    c = (hyper(M=T2, n=T2 - S2, N=2, k=2) *
+         hyper(M=T1, n=T1 - S1, N=1, k=1))
+    d = hyper(M=T2, n=T2 - S2, N=3, k=3)
+    return (comb(3, 0) * P1 * P1 * P1 * a +
+            comb(3, 1) * P1 * P1 * P2 * b +
+            comb(3, 2) * P1 * P2 * P2 * c +
+            comb(3, 3) * P2 * P2 * P2 * d)
+
+
+def pick_at_least_1_p(T1, S1, P1, T2, S2):
+    '''
+    pick_at_least_1_p returns the probability
+    of seeing at lest 1 sucess in 3 turns
+    '''
+    # (int, int, float, int, int, float) -> float(0.0, 1.0)
+    return 1.0 - pick_0_p(T1, S1, P1, T2, S2)
 
 
 def partition_picks(N):  # (int(1, 30)) -> tuple(int(0,26), int(0,4))
@@ -226,18 +259,18 @@ def expected_number(hero, card_pool, predicate, N):
     neutral_pool = [c for c in card_pool if c.player_class is None]
     hero_by = partition_by_rarity(hero_pool)
     neut_by = partition_by_rarity(neutral_pool)
-    inner_p = lambda m: sum([p * hs_pick_p(len(hero_by[r]),
+    inner_p = lambda m: sum([p * pick_at_least_1_p(len(hero_by[r]),
                             len([c for c in hero_by[r] if predicate(c)]),
                             CLASS_PICK_P[r],
                             len(neut_by[r]),
-                            len([c for c in neut_by[r] if predicate(c)]),
-                            1 - CLASS_PICK_P[r]) for r, p in m.items()])
+                            len([c for c in neut_by[r] if predicate(c)]))
+        for r, p in m.items()])
     normal_p = inner_p(NORMAL_PICK_P)
     special_p = inner_p(SPECIAL_PICK_P)
     return (sum([binom(N_REG, p=normal_p).pmf(k=i) * i
-                for i in range(3 * N_REG)]) +
+                for i in range(N_REG)]) +
             sum([binom(N_SPEC, p=special_p).pmf(k=i) * i
-                for i in range(3 * N_SPEC)]))
+                for i in range(N_SPEC)]))
 
 
 def probability_of(hero, card_pool, predicate, N):
