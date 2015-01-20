@@ -265,12 +265,11 @@ def expected_number(hero, card_pool, predicate, N):
                             len(neut_by[r]),
                             len([c for c in neut_by[r] if predicate(c)]))
         for r, p in m.items()])
-    normal_p = inner_p(NORMAL_PICK_P)
-    special_p = inner_p(SPECIAL_PICK_P)
-    return (sum([binom(N_REG, p=normal_p).pmf(k=i) * i
-                for i in range(N_REG)]) +
-            sum([binom(N_SPEC, p=special_p).pmf(k=i) * i
-                for i in range(N_SPEC)]))
+    br = binom(N_REG, p=inner_p(NORMAL_PICK_P))
+    bs = binom(N_SPEC, p=inner_p(SPECIAL_PICK_P))
+    # probability of exactly k successes
+    outer_p = lambda k: sum([br.pmf(k - i) * bs.pmf(i) for i in range(k + 1)])
+    return sum([outer_p(k) * k for k in range(N + 1)])
 
 
 def probability_of(hero, card_pool, predicate, N):
