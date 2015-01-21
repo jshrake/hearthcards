@@ -3,4 +3,5 @@ from .tags import (GameTag, CardRace, CardSet, CardType, Class, Faction, Rarity,
                    Requirement, SpellZone, Step, Zone, Mechanics)
 from .util import (hearthstone_data_dir)
 from .locale import (Locale)
-from .arena import (arena_draft, expected_number, probability_of)
+from .arena import (arena_draft, draftable_cards, arena_probability,
+                    arena_expectation)

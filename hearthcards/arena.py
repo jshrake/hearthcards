@@ -4,25 +4,29 @@ from .tags import Rarity
 from scipy.stats import binom, hypergeom
 from scipy.misc import comb
 from numpy import nan_to_num
+from . import carddef, locale, tags
+
 
 '''
 arena module for simulating arena drafts and calculating useful statistics
 '''
 
-
+# probability of rarity for a normal pick
 NORMAL_PICK_P = {Rarity.COMMON: .9,
                  Rarity.RARE: .08,
                  Rarity.EPIC: .016,
                  Rarity.LEGENDARY: 0.004}
 
+# probability of card rarities for a special (turns 1, 10, 20, 30) pick
 SPECIAL_PICK_P = {Rarity.RARE: .8,
                   Rarity.EPIC: .16,
                   Rarity.LEGENDARY: .04}
 
+# probability of obtaining a class card for a turn of a given rarity
 CLASS_PICK_P = {Rarity.COMMON: .3,
                 Rarity.RARE: .2,
                 Rarity.EPIC: .3,
-                Rarity.LEGENDARY: 0.07}
+                Rarity.LEGENDARY: 0.08}
 
 
 class CardPool(object):
@@ -248,11 +252,25 @@ def partition_picks(N):  # (int(1, 30)) -> tuple(int(0,26), int(0,4))
         return (N - 4, 4)
 
 
-def expected_number(hero, card_pool, predicate, N):
-    # (Class, list(CardDef), ((CardDef) -> bool), int(0,30)) -> float
+def draftable_cards(lang=locale.Locale.US):
+    # Locale -> list(CardDef)
     '''
-    Returns the expected number of cards we'll see in the next N
-    turns matching the predicate
+    Returns a list of arena draftable cards
+    '''
+    try:
+        return draftable_cards.data
+    except:
+        draftable_cards.data = [c for c in carddef.card_db()[lang] if
+                                c.is_collectible and
+                                c.type != tags.CardType.HERO]
+        return draftable_cards.data
+
+
+def arena_probability(hero, predicate, N=30, card_pool=draftable_cards()):
+    # (Class, ((CardDef) -> bool), int(0,30), list(CardDef)) -> ((int)->float)
+    '''
+    Returns the probability distribution for drafting k cards in the next
+    N picks matching some predicate
     '''
     N_REG, N_SPEC = partition_picks(N)
     hero_pool = [c for c in card_pool if c.player_class == hero]
@@ -268,9 +286,9 @@ def expected_number(hero, card_pool, predicate, N):
     br = binom(N_REG, p=inner_p(NORMAL_PICK_P))
     bs = binom(N_SPEC, p=inner_p(SPECIAL_PICK_P))
     # probability of exactly k successes
-    outer_p = lambda k: sum([br.pmf(k - i) * bs.pmf(i) for i in range(k + 1)])
-    return sum([outer_p(k) * k for k in range(N + 1)])
+    return lambda k: sum([br.pmf(k - i) * bs.pmf(i) for i in range(k + 1)])
 
 
-def probability_of(hero, card_pool, predicate, N):
-    return expected_number(hero, card_pool, predicate, N) / (3 * N)
+def arena_expectation(hero, predicate, N=30, card_pool=draftable_cards()):
+    p = arena_probability(hero, predicate, N, card_pool)
+    return sum([p(k) * k for k in range(N + 1)])
