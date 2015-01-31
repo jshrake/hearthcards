@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 import os
 from enum import Enum
 from . import disunity
-from .tags import (GameTag, CardSet, CardType, Class,
+from .tags import (GameTag, CardSet, CardType, Hero,
                    Faction, CardRace, Rarity,
                    Requirement, Mechanics)
 from .util import hearthstone_data_dir
@@ -113,8 +113,8 @@ class CardDef(object):
         return _to_enum_or_none(Rarity, self.get_tag(GameTag.RARITY))
 
     @property
-    def player_class(self):
-        return _to_enum_or_none(Class, self.get_tag(GameTag.CLASS))
+    def hero(self):
+        return _to_enum_or_none(Hero, self.get_tag(GameTag.CLASS))
 
     @property
     def race(self):
@@ -231,7 +231,7 @@ class CardDef(object):
             "id": self.id,
             "name": self.name,
             "type": self.type,
-            "class": self.player_class,
+            "class": self.hero,
             "rarity": self.rarity,
             "race": self.race,
             "elite": self.is_elite,

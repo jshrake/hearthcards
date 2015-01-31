@@ -21,7 +21,7 @@ def val_to_tag():
 GameTag = IntEnum('GameTag', tag_to_val().get('GAMETAG').items())
 CardSet = IntEnum('CardSet', tag_to_val().get('CARD_SET').items())
 CardType = IntEnum('CardType', tag_to_val().get('CARDTYPE').items())
-Class = IntEnum('Class', tag_to_val().get('CLASS').items())
+Hero = IntEnum('Hero', tag_to_val().get('CLASS').items())
 Faction = IntEnum('Faction', tag_to_val().get('FACTION').items())
 CardRace = IntEnum('CardRace', tag_to_val().get('CARDRACE').items())
 Rarity = IntEnum('Rarity', tag_to_val().get('RARITY').items())
