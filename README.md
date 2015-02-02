@@ -11,7 +11,22 @@ hearthcards is a Python 3 library for Hearthstone analysis
     python3 -m unittest
 
 # usage
-See [hearthcards/tests/test_arena.py](hearthcards/tests/test_arena.py)
+```python
+from hearthcards import arena, Hero
+# The expected number of turns containing at least one 3-drop minion, given 10 turns remaining
+is_3_drop = lambda card: card.is_minion and card.cost == 3
+arena.draft_e(Hero.MAGE, is_3_drop, 10)
+>>4.544
+
+# The expected number of turns containing at least one spell?
+arena.draft_e(Hero.MAGE, lambda c: c.is_ability, 30)
+>> 14.961
+
+# The probability that at least 2 of the next 20 turns offers a Fireball?
+p = arena.draft_p(Hero.MAGE, lambda c: c.name == "Fireball", 20)
+1.0 - sum([p(k=i) for i in range(0, 2)])
+>> 0.162
+```
 
 # dependencies
 hearthcards currently extracts the card data directly from the Hearthstone game client data files using [disunity](https://github.com/ata4/disunity).
