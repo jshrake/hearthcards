@@ -2,16 +2,16 @@
 hearthcards is a Python 3 library for Hearthstone analysis
 
 # install
-  python setup.py install
+    python setup.py install
 
 # uninstall
-  python setup.py clean --all
+    python setup.py clean --all
 
 # test
-   python3 -m unittest
+    python3 -m unittest
 
 # usage
-See hearthcards/tests/test_arena.py
+See [hearthcards/tests/test_arena.py](hearthcards/tests/test_arena.py)
 
 # dependencies
 hearthcards currently extracts the card data directly from the Hearthstone game client data files using [disunity](https://github.com/ata4/disunity).
