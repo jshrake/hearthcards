@@ -12,20 +12,26 @@ hearthcards is a Python 3 library for Hearthstone analysis
 
 # usage
 ```python
-from hearthcards import arena, Hero
+from hearthcards import arena, Hero, CardRace, GameTag
 # The expected number of turns containing at least one 3-drop minion, given 10 turns remaining
 is_3_drop = lambda card: card.is_minion and card.cost == 3
 arena.draft_e(Hero.MAGE, is_3_drop, 10)
 >>4.544
 
-# The expected number of turns containing at least one spell?
+# The expected number of turns containing at least one spell
 arena.draft_e(Hero.MAGE, lambda c: c.is_ability, 30)
 >> 14.961
 
-# The probability that at least 2 of the next 20 turns offers a Fireball?
+# The probability that at least 2 of the next 20 turns offers a Fireball
 p = arena.draft_p(Hero.MAGE, lambda c: c.name == "Fireball", 20)
 1.0 - sum([p(k=i) for i in range(0, 2)])
 >> 0.162
+
+# The expected number of turns containing at least one beast or taunt minion
+beast_or_taunt = lambda c: c.is_minion and (c.race == CardRace.PET or GameTag.TAUNT in c.mechanics)
+arena.draft_e(Hero.HUNTER, beast_or_taunt, 30)
+>>16.4147
+
 ```
 
 # dependencies
