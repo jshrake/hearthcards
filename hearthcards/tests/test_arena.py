@@ -127,9 +127,13 @@ class TestArenaFunctions(unittest.TestCase):
         self.assertAlmostEqual(ratio(card_has_name('Archmage Antonidas')),
                                0.03, 2)
 
-        rarities = [Rarity.COMMON, Rarity.RARE, Rarity.EPIC, Rarity.LEGENDARY]
-        self.assertAlmostEqual(sum([mage_e(lambda c: c.rarity == r) / 30.0
-                               for r in rarities]), 1.0, 2)
+        turn_rarity_expectations = ([
+            mage_e(lambda c: c.rarity == Rarity.COMMON or
+                   c.rarity == Rarity.FREE),
+            mage_e(lambda c: c.rarity == Rarity.RARE),
+            mage_e(lambda c: c.rarity == Rarity.EPIC),
+            mage_e(lambda c: c.rarity == Rarity.LEGENDARY)])
+        self.assertAlmostEqual(sum(turn_rarity_expectations) / 30.0, 1.0)
 
 
 if __name__ == '__main__':
