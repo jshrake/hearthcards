@@ -11,6 +11,7 @@ hearthcards is a Python 3 library for Hearthstone analysis
     python3 -m unittest
 
 # usage
+Arena draft calculations:
 ```python
 from hearthcards import arena, Hero, CardRace, GameTag
 # The expected number of turns containing at least one 3-drop minion, given 10 turns remaining
